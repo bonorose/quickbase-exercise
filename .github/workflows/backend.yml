@@ -1,0 +1,79 @@
+name: backend
+
+on:
+  pull_request:
+    paths:
+      - "services/backend/**"
+      - "db/**"
+      - "docker-compose.yml"
+      - ".github/workflows/backend.yml"
+  push:
+    paths:
+      - "services/backend/**"
+      - "db/**"
+      - "docker-compose.yml"
+      - ".github/workflows/backend.yml"
+
+defaults:
+  run:
+    working-directory: services/backend
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: |
+            services/backend/requirements.txt
+            services/backend/requirements-dev.txt
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - run: ruff check .
+      - run: ruff format --check .
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: |
+            services/backend/requirements.txt
+            services/backend/requirements-dev.txt
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - run: pytest -m "unit or api" --junitxml=pytest.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pytest-results
+          path: services/backend/pytest.xml
+
+  evals-scripted:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: |
+            services/backend/requirements.txt
+            services/backend/requirements-dev.txt
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - run: python -m evals.run
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: evals-scripted-report
+          path: services/backend/evals/out/
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build .

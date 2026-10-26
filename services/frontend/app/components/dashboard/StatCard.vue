@@ -13,16 +13,16 @@ defineProps<{
 <template>
   <Card>
     <CardHeader class="flex flex-row items-center justify-between gap-2 pb-2">
-      <CardTitle class="text-sm font-medium text-muted-foreground">
+      <CardTitle class="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
         {{ title }}
       </CardTitle>
-      <component :is="icon" class="size-4 text-muted-foreground" />
+      <component :is="icon" class="size-4 text-teal-signal" />
     </CardHeader>
     <CardContent>
       <Skeleton v-if="loading" class="h-8 w-20" />
-      <div v-else class="text-2xl font-bold tabular-nums">
-        <slot>{{ value }}</slot>
-      </div>
+      <slot v-else>
+        <span class="text-3xl font-extrabold tabular-nums tracking-tight">{{ value }}</span>
+      </slot>
       <p v-if="description" class="mt-1 text-xs text-muted-foreground">
         {{ description }}
       </p>

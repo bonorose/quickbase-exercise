@@ -1,0 +1,58 @@
+id: 06_approval_expiry
+category: expiry
+actor:
+  organization: Excellence
+  email: op1@excellence.qai.local
+variants:
+  - id: scripted
+    live: true
+    script:
+      draft an expiring change:
+        text: Drafted an expiring change.
+        tool_calls:
+          - name: mutate_ticket
+            args:
+              id: "$self:0"
+              action: update
+              fields:
+                priority: high
+      draft a saved change:
+        text: Drafted a change that will be saved.
+        tool_calls:
+          - name: mutate_ticket
+            args:
+              id: "$self:1"
+              action: update
+              fields:
+                priority: low
+      what happened to the draft:
+        text: The first draft expired.
+    steps:
+      - say: draft an expiring change
+      - say: draft a saved change
+      - save: true
+        from_step: 1
+      - expire: true
+      - decide: approve
+        from_step: 0
+      - decide: approve
+        from_step: 1
+      - say: what happened to the draft
+    gates:
+      - http_status:
+          step: 2
+          code: 200
+      - http_status:
+          step: 4
+          code: 410
+      - http_status:
+          step: 5
+          code: 200
+      - approval_status:
+          step: 0
+          status: expired
+      - approval_status:
+          step: 1
+          status: executed
+      - history_contains: was expired by system
+      - approval_args_match_execution

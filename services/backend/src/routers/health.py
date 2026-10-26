@@ -16,3 +16,8 @@ router = APIRouter(tags=["health"])
 @router.get("/health", response_model=HealthResponse)
 async def health(controller: HealthControllerDep):
     return await controller.health()
+
+
+@router.get("/livez")
+async def livez():
+    return {"status": "ok"}

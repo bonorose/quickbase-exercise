@@ -2,10 +2,12 @@
 # ******************************************************************************
 # * @file    auth/response.py
 # * @author  Simeon Marlokov
-# * @brief   Auth response bodies
+# * @brief   Auth response bodies (C-01, C-02)
 # * @date    25.10.2026
 # ******************************************************************************
-from pydantic import BaseModel, ConfigDict
+from typing import Literal
+
+from pydantic import BaseModel
 
 
 class TokenResponse(BaseModel):
@@ -14,9 +16,14 @@ class TokenResponse(BaseModel):
     expires_in: int
 
 
-class UserResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
+class OrganizationResponse(BaseModel):
     id: int
+    name: str
+
+
+class UserResponse(BaseModel):
+    id: int
+    name: str
     email: str
-    full_name: str
+    role: Literal["operator", "team_lead"]
+    organization: OrganizationResponse

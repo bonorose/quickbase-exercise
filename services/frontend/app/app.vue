@@ -1,6 +1,13 @@
 <script setup lang="ts">
+import { Toaster } from 'vue-sonner'
+const { organization } = useAuth()
+
 useHead({
-  titleTemplate: title => (title ? `${title} — Quickbase Interview` : 'Quickbase Interview'),
+  titleTemplate: (title) => {
+    const org = organization.value?.name
+    const suffix = org ? `${org} — qAI` : 'qAI'
+    return title ? `${title} — ${suffix}` : suffix
+  },
   htmlAttrs: { lang: 'en' },
 })
 </script>
@@ -9,4 +16,5 @@ useHead({
   <NuxtLayout>
     <NuxtPage />
   </NuxtLayout>
+  <Toaster position="top-right" />
 </template>

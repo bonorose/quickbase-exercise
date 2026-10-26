@@ -1,0 +1,26 @@
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = [
+    "unit: no database and no network",
+    "api: needs PostgreSQL (testcontainers)",
+    "live: calls external services",
+    "slow: timing-sensitive; still part of the api suite",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py314"
+src = ["src", "tests", "alembic", "evals"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["src", "evals"]
+
+[tool.ruff.lint.per-file-ignores]
+"alembic/versions/*.py" = ["E501", "I001"]

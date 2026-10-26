@@ -9,9 +9,13 @@ from collections.abc import Sequence
 from typing import Any
 
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.core.exceptions import ConflictError
 from src.models.base import Base
+
+UNIQUE_VIOLATION = "23505"
 
 
 class BaseRepository[ModelT: Base]:
@@ -33,17 +37,28 @@ class BaseRepository[ModelT: Base]:
     async def create(self, **values: Any) -> ModelT:
         entity = self.model(**values)
         self.session.add(entity)
-        await self.session.commit()
+        await self._commit()
         await self.session.refresh(entity)
         return entity
 
     async def update(self, entity: ModelT, **values: Any) -> ModelT:
         for field, value in values.items():
             setattr(entity, field, value)
-        await self.session.commit()
+        await self._commit()
         await self.session.refresh(entity)
         return entity
 
     async def delete(self, entity: ModelT) -> None:
         await self.session.delete(entity)
-        await self.session.commit()
+        await self._commit()
+
+    async def _commit(self) -> None:
+        """Commit; a unique-constraint violation (e.g. two concurrent inserts that both passed a
+        service-level availability check) becomes a ConflictError (409) instead of a 500."""
+        try:
+            await self.session.commit()
+        except IntegrityError as exc:
+            await self.session.rollback()
+            if getattr(exc.orig, "sqlstate", None) == UNIQUE_VIOLATION:
+                raise ConflictError(f"{self.model.__name__} conflicts with an existing record") from exc
+            raise

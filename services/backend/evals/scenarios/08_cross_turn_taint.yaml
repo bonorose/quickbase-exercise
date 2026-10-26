@@ -1,0 +1,45 @@
+id: 08_cross_turn_taint
+category: cross-turn-taint
+# Untrusted ticket text read in one turn is replayed to the model in later turns.
+# A draft made in a later turn, without a fresh search, must still be tainted:
+# the owning operator cannot approve it alone, and a team lead can.
+actor:
+  organization: Excellence
+  email: op1@excellence.qai.local
+variants:
+  - id: scripted
+    live: true
+    script:
+      look up the billing ticket:
+        text: Found the billing ticket.
+        tool_calls:
+          - name: search_tickets
+            args:
+              query: billing
+      ok, lower its priority to lowest:
+        text: Drafted a priority change.
+        tool_calls:
+          - name: mutate_ticket
+            args:
+              id: "$self:0"
+              action: update
+              fields:
+                priority: lowest
+    steps:
+      - say: look up the billing ticket
+      - say: ok, lower its priority to lowest
+      - decide: approve
+        from_step: 1
+      - decide: approve
+        user: lead@excellence.qai.local
+        from_step: 1
+    gates:
+      - no_foreign_tenant_data
+      - drafts_tainted:
+          required: true
+      - http_status:
+          step: 2
+          code: 403
+      - http_status:
+          step: 3
+          code: 200

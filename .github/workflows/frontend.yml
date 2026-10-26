@@ -1,0 +1,118 @@
+name: frontend
+
+on:
+  pull_request:
+    paths:
+      - 'services/frontend/**'
+      - '.github/workflows/frontend.yml'
+      - 'docker-compose.yml'
+      - '.env.example'
+  push:
+    paths:
+      - 'services/frontend/**'
+      - '.github/workflows/frontend.yml'
+      - 'docker-compose.yml'
+      - '.env.example'
+
+defaults:
+  run:
+    working-directory: services/frontend
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: services/frontend/package-lock.json
+      - run: npm ci
+      - run: npx nuxt typecheck
+      - run: npm test -- --coverage
+      - run: npm run generate
+
+  e2e-smoke:
+    runs-on: ubuntu-latest
+    needs: unit
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: services/frontend/package-lock.json
+      - name: Create CI env
+        run: |
+          cp .env.example .env
+          JWT=$(openssl rand -hex 32)
+          sed -i "s/^JWT_SECRET_KEY=.*/JWT_SECRET_KEY=${JWT}/" .env
+          sed -i "s/^GEMINI_API_KEY=.*/GEMINI_API_KEY=/" .env
+          sed -i "s/^LLM_PROVIDER=.*/LLM_PROVIDER=fake/" .env
+          sed -i "s|^LLM_FAKE_SCRIPT_PATH=.*|LLM_FAKE_SCRIPT_PATH=tests/fixtures/llm_scripts/read_path.yaml|" .env
+      - name: Start stack
+        run: docker compose up -d --build
+      - run: npm ci
+        working-directory: services/frontend
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+        working-directory: services/frontend
+      - name: E2E smoke
+        run: npm run e2e -- --grep @smoke
+        working-directory: services/frontend
+        env:
+          E2E_BASE_URL: http://localhost:3000
+          E2E_API_BASE: http://localhost:5000
+          E2E_USER_EMAIL: op1@excellence.qai.local
+          E2E_USER_PASSWORD: admin123
+          LLM_PROVIDER: fake
+      - name: E2E chat
+        run: npm run e2e -- --grep @chat
+        working-directory: services/frontend
+        env:
+          E2E_BASE_URL: http://localhost:3000
+          E2E_API_BASE: http://localhost:5000
+          E2E_USER_EMAIL: op1@excellence.qai.local
+          E2E_USER_PASSWORD: admin123
+          LLM_PROVIDER: fake
+      - name: E2E approval gate
+        run: npm run e2e -- --grep @gate
+        working-directory: services/frontend
+        env:
+          E2E_BASE_URL: http://localhost:3000
+          E2E_API_BASE: http://localhost:5000
+          E2E_USER_EMAIL: op1@excellence.qai.local
+          E2E_USER_PASSWORD: admin123
+          LLM_PROVIDER: fake
+      - name: E2E adversarial and accessibility
+        run: npm run e2e -- --grep "@adversarial|@a11y" --repeat-each=3 --workers=1
+        working-directory: services/frontend
+        env:
+          E2E_BASE_URL: http://localhost:3000
+          E2E_API_BASE: http://localhost:5000
+          E2E_USER_EMAIL: op1@excellence.qai.local
+          E2E_USER_PASSWORD: admin123
+          E2E_LOGIN_RATE_LIMIT: "10"
+          LLM_PROVIDER: fake
+      - name: E2E hardening
+        run: npm run e2e -- --grep @hardening
+        working-directory: services/frontend
+        env:
+          E2E_BASE_URL: http://localhost:3000
+          E2E_API_BASE: http://localhost:5000
+          E2E_USER_EMAIL: op1@excellence.qai.local
+          E2E_USER_PASSWORD: admin123
+          E2E_LOGIN_RATE_LIMIT: "10"
+          LLM_PROVIDER: fake
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: services/frontend/playwright-report
+      - name: Stop stack
+        if: always()
+        run: docker compose down -v

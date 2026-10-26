@@ -4,6 +4,10 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Newsreader", ui-serif, Georgia, serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -25,58 +29,86 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  /* quickAI palette — used directly where a semantic role would hide the brand color. */
+  --color-forest: var(--forest);
+  --color-teal-signal: var(--teal-signal);
+  --color-signal: var(--signal);
+  --color-paper: var(--paper);
+  --color-rule: var(--rule);
+  --color-ink: var(--ink);
+  --color-teal-wash: var(--teal-wash);
+  --color-signal-wash: var(--signal-wash);
+
+  /* Sharp architectural: one 2px corner, not a soft radius scale. */
+  --radius-sm: 2px;
+  --radius-md: 2px;
+  --radius-lg: 2px;
+  --radius-xl: 2px;
 }
 
-/* shadcn-vue "zinc" base palette */
+/*
+ * Forest Ink #102D18, Teal Signal #259B89, Signal Orange #F45A35,
+ * Warm Paper #F3F4EF, Paper White #FFFFFF, Rule #DDE2DA, Muted Ink #687063.
+ * Washes are tints of those hues so small text stays on Forest Ink.
+ */
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.141 0.005 285.823);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.141 0.005 285.823);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.141 0.005 285.823);
-  --primary: oklch(0.21 0.006 285.885);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.967 0.001 286.375);
-  --secondary-foreground: oklch(0.21 0.006 285.885);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: oklch(0.21 0.006 285.885);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --success: oklch(0.6 0.15 150);
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.705 0.015 286.067);
+  color-scheme: light;
+  --radius: 2px;
+
+  --forest: #102D18;
+  --teal-signal: #259B89;
+  --signal: #F45A35;
+  --paper: #F3F4EF;
+  --paper-white: #FFFFFF;
+  --rule: #DDE2DA;
+  --ink: #687063;
+  --teal-wash: #E5F3F1;
+  --signal-wash: #FDE8E3;
+
+  --background: var(--paper);
+  --foreground: var(--forest);
+  --card: var(--paper-white);
+  --card-foreground: var(--forest);
+  --popover: var(--paper-white);
+  --popover-foreground: var(--forest);
+  --primary: var(--forest);
+  --primary-foreground: var(--paper-white);
+  --secondary: var(--paper);
+  --secondary-foreground: var(--forest);
+  --muted: #E7EBE4;
+  --muted-foreground: var(--ink);
+  --accent: var(--teal-wash);
+  --accent-foreground: var(--forest);
+  --destructive: var(--signal);
+  --destructive-foreground: var(--forest);
+  --success: var(--teal-signal);
+  --border: var(--rule);
+  --input: var(--rule);
+  --ring: var(--teal-signal);
 }
 
 .dark {
-  --background: oklch(0.141 0.005 285.823);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.21 0.006 285.885);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.21 0.006 285.885);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.92 0.004 286.32);
-  --primary-foreground: oklch(0.21 0.006 285.885);
-  --secondary: oklch(0.274 0.006 286.033);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.274 0.006 286.033);
-  --muted-foreground: oklch(0.705 0.015 286.067);
-  --accent: oklch(0.274 0.006 286.033);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);
-  --success: oklch(0.7 0.15 150);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.552 0.016 285.938);
+  color-scheme: dark;
+  --background: #0C1F14;
+  --foreground: var(--paper);
+  --card: #143024;
+  --card-foreground: var(--paper);
+  --popover: #143024;
+  --popover-foreground: var(--paper);
+  --primary: var(--paper);
+  --primary-foreground: var(--forest);
+  --secondary: #1C3A2C;
+  --secondary-foreground: var(--paper);
+  --muted: #1C3A2C;
+  --muted-foreground: #B7C0B4;
+  --accent: #1A4A42;
+  --accent-foreground: var(--paper);
+  --destructive: var(--signal);
+  --destructive-foreground: var(--forest);
+  --success: var(--teal-signal);
+  --border: #2A4638;
+  --input: #2A4638;
+  --ring: var(--teal-signal);
 }
 
 @layer base {
@@ -84,6 +116,14 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background font-sans text-foreground antialiased;
+  }
+  /* Metadata is IBM Plex Mono Medium. */
+  .font-mono {
+    font-weight: 500;
+  }
+  ::selection {
+    background: var(--teal-wash);
+    color: var(--forest);
   }
 }

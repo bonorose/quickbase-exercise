@@ -6,10 +6,14 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-COPY requirements.txt ./
-RUN pip install --no-cache-dir --upgrade -r requirements.txt
+COPY requirements.txt requirements-dev.txt ./
+RUN pip install --no-cache-dir --upgrade -r requirements.txt -r requirements-dev.txt
 
-COPY src/ ./src/
+COPY alembic.ini ./
+COPY alembic ./alembic
+COPY src ./src
+COPY pyproject.toml ./
+COPY tests ./tests
 
 EXPOSE 5000
 

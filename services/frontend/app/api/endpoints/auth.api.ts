@@ -5,13 +5,11 @@ import type { TokenResponse, UserResponse } from '~/types/api/responses'
 export function createAuthApi(client: ApiClient, prefix: string) {
   return {
     login: (body: LoginRequest) =>
-      client<TokenResponse>(`${prefix}/auth/login`, { method: 'POST', body }),
+      client.request<TokenResponse>(`${prefix}/auth/login`, { method: 'POST', body }),
 
-    /** Pass `token` to call before it is stored in the session (right after login). */
-    me: (token?: string) =>
-      client<UserResponse>(`${prefix}/auth/me`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      }),
+    me: () => client.request<UserResponse>(`${prefix}/auth/me`),
+
+    logout: () => client.request<void>(`${prefix}/auth/logout`, { method: 'POST' }),
   }
 }
 

@@ -2,7 +2,7 @@
 # ******************************************************************************
 # * @file    dependencies/auth.py
 # * @author  Simeon Marlokov
-# * @brief   Auth wiring: session -> UserRepository -> AuthService -> AuthController
+# * @brief   Auth wiring: session -> repositories -> AuthService -> AuthController
 # * @date    25.10.2026
 # ******************************************************************************
 from typing import Annotated
@@ -13,19 +13,20 @@ from src.controllers.auth_controller import AuthController
 from src.core.exceptions import UnauthorizedError
 from src.dependencies.database import SessionDep
 from src.models.user import User
+from src.repositories.organization_repository import OrganizationRepository
 from src.repositories.user_repository import UserRepository
 from src.services.auth_service import AuthService
 
 
 def get_auth_controller(session: SessionDep) -> AuthController:
-    return AuthController(AuthService(UserRepository(session)))
+    return AuthController(AuthService(UserRepository(session), OrganizationRepository(session)))
 
 
 AuthControllerDep = Annotated[AuthController, Depends(get_auth_controller)]
 
 
 def get_current_user(request: Request) -> User:
-    """The user resolved by middlewares/auth.py. Absent only on routes marked @public."""
+    """The user resolved by middlewares/auth.py. Absent only on public routes."""
     user = getattr(request.state, "user", None)
     if user is None:
         raise UnauthorizedError("Not authenticated")

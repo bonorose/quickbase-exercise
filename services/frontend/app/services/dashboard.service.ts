@@ -1,16 +1,8 @@
 import type { HealthApi } from '~/api/endpoints/health.api'
-import type { ItemsApi } from '~/api/endpoints/items.api'
-import type { HealthResponse, ItemResponse } from '~/types/api/responses'
-import type { DashboardSummary, ItemSummary, ServiceStatus } from '~/types/models'
-
-function toItemSummary(dto: ItemResponse): ItemSummary {
-  return {
-    id: dto.id,
-    name: dto.name,
-    description: dto.description ?? '—',
-    createdAt: new Date(dto.created_at),
-  }
-}
+import type { TicketsApi } from '~/api/endpoints/tickets.api'
+import type { HealthResponse } from '~/types/api/responses'
+import type { DashboardSummary, ServiceStatus } from '~/types/models'
+import { toTicketRow } from '~/services/tickets.service'
 
 function toStatuses(health: HealthResponse | null): { api: ServiceStatus, database: ServiceStatus } {
   if (!health) return { api: 'down', database: 'down' }
@@ -19,22 +11,26 @@ function toStatuses(health: HealthResponse | null): { api: ServiceStatus, databa
 
 export class DashboardService {
   constructor(
-    private readonly itemsApi: ItemsApi,
+    private readonly ticketsApi: TicketsApi,
     private readonly healthApi: HealthApi,
   ) {}
 
-  async getSummary(itemLimit = 10): Promise<DashboardSummary> {
-    const [list, health] = await Promise.all([
-      this.itemsApi.list({ limit: itemLimit, offset: 0 }),
-      // A failing health probe should degrade the dashboard, not break it
+  async getSummary(): Promise<DashboardSummary> {
+    const [open, blocked, closed, recent, health] = await Promise.all([
+      this.ticketsApi.list({ status: 'open', limit: 1, offset: 0 }),
+      this.ticketsApi.list({ status: 'blocked', limit: 1, offset: 0 }),
+      this.ticketsApi.list({ status: 'closed', limit: 1, offset: 0 }),
+      this.ticketsApi.list({ sort: '-date_updated', limit: 5, offset: 0 }),
       this.healthApi.get().catch(() => null),
     ])
     const statuses = toStatuses(health)
     return {
-      totalItems: list.total,
+      openCount: open.total,
+      blockedCount: blocked.total,
+      closedCount: closed.total,
       apiStatus: statuses.api,
       databaseStatus: statuses.database,
-      items: list.items.map(toItemSummary),
+      recent: recent.items.map(toTicketRow),
     }
   }
 }

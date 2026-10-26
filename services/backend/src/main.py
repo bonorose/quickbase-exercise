@@ -5,6 +5,7 @@
 # * @brief   FastAPI application entrypoint
 # * @date    25.10.2026
 # ******************************************************************************
+import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -13,10 +14,12 @@ from fastapi.responses import JSONResponse
 from loguru import logger
 
 from src.core.config import get_settings
-from src.core.exceptions import DomainError, UnauthorizedError
+from src.core.exceptions import DomainError, RateLimitError, UnauthorizedError
 from src.core.logging import setup_logging
 from src.core.openapi import install_openapi
-from src.db.session import engine
+from src.core.revocation_purge import revocation_purge_loop
+from src.db.session import get_engine
+from src.integrations.llm import assert_llm_provider_allowed
 from src.middlewares.auth import AuthMiddleware
 from src.routers import PUBLIC_API_ROUTES, api_router, health
 
@@ -26,12 +29,20 @@ setup_logging(settings.log_level)
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    assert_llm_provider_allowed()
     logger.info(f"Starting {settings.app_name} ({settings.app_env})")
+    stop_purge = asyncio.Event()
+    purge = asyncio.create_task(revocation_purge_loop(stop_purge))
     yield
-    await engine.dispose()
+    stop_purge.set()
+    purge.cancel()
+    await asyncio.gather(purge, return_exceptions=True)
+    await get_engine().dispose()
 
 
-public_routes = frozenset((method, settings.api_v1_prefix + path) for method, path in PUBLIC_API_ROUTES)
+public_routes = frozenset(
+    {(method, settings.api_v1_prefix + path) for method, path in PUBLIC_API_ROUTES} | {("GET", "/livez")}
+)
 
 app = FastAPI(title=settings.app_name, lifespan=lifespan)
 install_openapi(app, public_routes)
@@ -49,8 +60,22 @@ app.add_middleware(
 
 @app.exception_handler(DomainError)
 async def domain_error_handler(_: Request, exc: DomainError) -> JSONResponse:
-    headers = {"WWW-Authenticate": "Bearer"} if isinstance(exc, UnauthorizedError) else None
-    return JSONResponse(status_code=exc.status_code, content={"detail": exc.message}, headers=headers)
+    headers: dict[str, str] = {}
+    if isinstance(exc, UnauthorizedError):
+        headers["WWW-Authenticate"] = "Bearer"
+    if isinstance(exc, RateLimitError):
+        headers["Retry-After"] = str(exc.retry_after)
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.message, **exc.extra},
+        headers=headers or None,
+    )
+
+
+@app.exception_handler(Exception)
+async def unhandled_error_handler(_: Request, exc: Exception) -> JSONResponse:
+    logger.exception(f"Unhandled error: {exc}")
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
 
 app.include_router(health.router)
